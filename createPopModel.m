@@ -1,42 +1,42 @@
-function [popModel] = createPopModel(model, idxExRxns, idxCoopkRxn, CharExtComp, nPop, otherFeat, rxnsFeat, metsFeat)
+function [popModel] = createPopModel(model, idxExRxns, idxCoopkRxn, nPop, CharExtComp, otherFeat, rxnsFeat, metsFeat)
+
 %work with model loaded with CobraToolbox
 %model must have at least the fields 'rxns', 'mets', 'S', 'c', 'lb', 'up'
 %the metabolites must are in the form of mets[x] where x = char for the
 %compartment
 
-%le ExRnxs saranno trattate nella forma [x] <=> '' se x ~= CharExtComp la reazione
-%viene moltiplicata per numPop. Si considera il fatto che l'utente può voler far
-%entrare o uscire un componente direttamente dalla cellula senza farlo
-%passare dalla matrice extracellulare (opzione sconsigliata)
+%the ExRnxs are in this expected form: [x] <=> '' if x ~= CharExtComp the
+%reaction will be multiply for nPop times. In this case the internal
+%metabolite don't pass through the external micro environment but go directly in the blood vessel 
+%otherwise the exchange reaction will not modify nor multiply bacuse is
+%already in the correct form
 
-%le UptkRxn saranno trattate nella forma [y] <=> [CharExtComp] (in <=> out)
-%se la reazione di partenza è [y] <=> '' allora viene modificata in [y_n] <=> [CharExtComp]
-%e verrà creata la corrispondente razione di exchange
-
-%tutte le altre reazioni saranno trattate nella forma [?] <=> [?]
-%trasformandole in [?_n] <=> [?_n]
+%the CoopRxn expected to be in two form: [y] <=> [CharExtComp] (in <=> out)
+%or [y] <=> '' 
+%In the first case will be multiply nPop times: [y_n] <=> [CharExtComp]
+%In the second case before the multiplication an exchange reaction will be
+%added
 
 
 %CharExtComp = char to discriminate between the extracellular and intercellular
-%compartment e.g. 's'
-
-%numPop is the number of time of model multiplication
+%compartment e.g. 's' = Tumoer micro environment, 'c' = cytosol.
 
 %rxnsFeat, metsFeat, otherFeat are string array with the name of field
-%linked rispectivelly to rxns, mets or niether of them. If theese argument
-%are not passed the feature will automatically determinate
+%linked rispectivelly to rxns, mets or niether of them. If these argument
+%are not passed the corrisponding of each feature will automatically determinate
 
+if nargin < 5
+    disp('Not enough input arguments');
+    popModel = model;
+    return
+end
 RxnsFeatures = table();
 MetsFeatures = table();
 OtherFeature = [];
-NumRxns = size(model.rxns,1); %problema se ci sono stesso numero di metaboliti e reazioni
-NumMets = size(model.mets,1); %prima soluzione approssimativa è far dare nome dei campi che si vogliono conservare direttamente dall'utente
+NumRxns = size(model.rxns,1); 
+NumMets = size(model.mets,1); 
 
-if nargin < 5
-    disp('Not enought argument');
-    popModel = model;
-    return
-elseif nargin < 6
+if nargin < 6
     if(NumRxns==NumMets)
         disp('Warning there is the same numbers of metabolite and reaction. It is not possible to distinguish between rnxs feature and mets feature.');
         disp('Please pass all the argument');
@@ -51,13 +51,13 @@ elseif nargin < 6
         for i=1:length(NameOfField)
             if(size(model.(NameOfField{i}),1)==NumRxns)
                 tmpTable = table(model.(NameOfField{i}), 'VariableNames', NameOfField(i)); %feature table: name of columns is the name of model fields
-                RxnsFeatures = [RxnsFeatures tmpTable]; %  is a table Rxns x (Feature belong to rxns)
+                RxnsFeatures = [RxnsFeatures tmpTable]; %  table Rxns x (Feature belong to rxns)
             elseif (size(model.(NameOfField{i}),1)==NumMets)
                 tmpTable = table(model.(NameOfField{i}), 'VariableNames', NameOfField(i)); %feature table: name of columns is the name of model fields
-                MetsFeatures = [MetsFeatures tmpTable]; %  is a table Mets x (Feature belong to Mets)
+                MetsFeatures = [MetsFeatures tmpTable]; %  table Mets x (Feature belong to Mets)
             else
                 
-                OtherFeature = [OtherFeature NameOfField(i)]; % is a table within features not linked neither mets or rxns e.g. List of genes
+                OtherFeature = [OtherFeature NameOfField(i)]; % table within features not linked neither mets or rxns e.g. List of genes
                 
             end
         end
@@ -76,9 +76,9 @@ elseif nargin < 7 % only other features are explicitate so the Rxns and Mets fea
     for i=1:length(NameOfField)
         tmpTable = table(model.(NameOfField{i}), 'VariableNames', NameOfField(i)); %feature table: name of columns is the name of model fields
         if(size(model.(NameOfField{i}),1)==NumRxns)
-            RxnsFeatures = [RxnsFeatures tmpTable]; %  is a table Rxns x (Feature belong to rxns)
+            RxnsFeatures = [RxnsFeatures tmpTable]; %  table Rxns x (Feature belong to rxns)
         else
-            MetsFeatures = [MetsFeatures tmpTable]; %  is a table Mets x (Feature belong to Mets)
+            MetsFeatures = [MetsFeatures tmpTable]; %  table Mets x (Feature belong to Mets)
         end
     end
     
@@ -97,17 +97,18 @@ end
 %Initialize var
 S = []; %new matrix S: n x 3 | idxMets, idxRxn, value
 nPop = nPop - 1;
-MatrNewMets = table(); %tabella (numPop*Mets) x 3 + k con nuovo metabolita, nuovo indice e vecchio indice + k features
-MatrNewRxns = table(); %tabella (numPop*Rxns) x 3 + p con nuovo metabolita, nuovo indice e vecchio indice + p features
+MatrNewMets = table(); %table (nPop*Mets) x 2 + k with new metabolite e old Index + k features
+MatrNewRxns = table(); %table (nPop*Rxns) x 2 + p with new metabolite e old Index + p features
 
-%Exchage reaction add prefix "Ex_" for debug
 for i=1:length(idxExRxns)
     
+    idxMets = find(model.S(:,idxExRxns(i))~=0); 
+    if(idxMets>1)
+    warning = [{'Warning the exchange reaction '} model.rxns{i} {'are in a wrong form, please check'}];
+    disp(strjoin(warning));
+    end
+    idxMets = find(model.S(:,idxExRxns(i))<0); 
     
-    idxMets = find(model.S(:,idxExRxns(i))<0); %deve essere solo uno a sinistra della reazione,
-    %se è più di uno ipotizzo che sia lo stesso metabolita
-    %con il compartimento diverso quindi prendo solo il primo dell'elenco, rimuovo
-    %quello che c'è tra [] e aggiungo '[s]'
     tmpMet = model.mets{idxMets(1)};
     compChar = tmpMet(end-1);
     if(compChar == CharExtComp)
@@ -133,25 +134,24 @@ for i=1:length(idxExRxns)
     end
 end
 
-%Uptake reaction:"Uptk_" for debug
 for i=1:length(idxCoopkRxn)
     idxMets = find(model.S(:,idxCoopkRxn(i)));
     if length(idxMets) == 1 % [y] <=> '' to [y_n] <=> [CharExtComp] and [CharExtComp] <=> ''
         idxRxnSt = size(MatrNewRxns,1)+1;
-        for j=0:nPop %crea le n rxn
-            tmpTable = table({strcat(model.rxns{idxCoopkRxn(i)}, '_', num2str(j))}, idxCoopkRxn(i), 'VariableNames', {'NewRxnName', 'RxnsOldIdx'}); %crea le n rxn
+        for j=0:nPop %create j reactions
+            tmpTable = table({strcat(model.rxns{idxCoopkRxn(i)}, '_', num2str(j))}, idxCoopkRxn(i), 'VariableNames', {'NewRxnName', 'RxnsOldIdx'}); 
             tmpTable = [tmpTable RxnsFeatures(idxCoopkRxn(i),:)];
             MatrNewRxns = [MatrNewRxns; tmpTable];
         end
         tmpMet = model.mets{idxMets};
         compChar = tmpMet(end-1);
-        for j=0:nPop %crea gli n mets[y]
+        for j=0:nPop %create j metabolites
             tmpTable = table({strcat(tmpMet(1:end-3), '_', num2str(j), '[',compChar,']')}, idxMets, 'VariableNames', {'NewMetName', 'MetsOldIdx'});
             tmpTable = [tmpTable MetsFeatures(idxMets,:)];
             MatrNewMets = [MatrNewMets; tmpTable];
             S = [S; size(MatrNewMets,1) (idxRxnSt + j)  model.S(idxMets,idxCoopkRxn(i))];
         end
-        %creazione metabolita [CharExtComp] (nuovo metabolita)
+        %build a new metabolites [CharExtComp]
         tmpTable = table({strcat(tmpMet(1:end-3), '[',CharExtComp,']')}, -1, 'VariableNames', {'NewMetName', 'MetsOldIdx'});
         tmpTable = [tmpTable MetsFeatures(idxMets,:)];
         if isfield(table2struct(tmpTable),'metNames') && isfield(table2struct(tmpTable),'metCompartment')
@@ -168,14 +168,15 @@ for i=1:length(idxCoopkRxn)
         MatrNewRxns = [MatrNewRxns; tmpTable];
         S = [S; size(MatrNewMets,1) size(MatrNewRxns,1)  -1];
     else        %[y] <=> [CharExtComp] to [y_n] <=> [CharExtComp]
-        %Bisogna iniziare a controllare che il metabolità non sia già in elenco
+        %Start to check if the following metabolite was already create
+        %before
         idxRxnSt = size(MatrNewRxns,1)+1;
-        for j=0:nPop %crea le n rxn
+        for j=0:nPop
             tmpTable = table({strcat(model.rxns{idxCoopkRxn(i)}, '_', num2str(j))}, idxCoopkRxn(i), 'VariableNames', {'NewRxnName', 'RxnsOldIdx'}); %crea le n rxn
             tmpTable = [tmpTable RxnsFeatures(idxCoopkRxn(i),:)];
             MatrNewRxns = [MatrNewRxns; tmpTable];
         end
-        tmpMet = model.mets(idxMets); %nomi metaboliti coinvolti nella reazione
+        tmpMet = model.mets(idxMets); %metabolite names in the reaction
         for k=1:length(idxMets)
             if ~isempty(MatrNewMets)
                 newIdx = find(ismember(MatrNewMets.('MetsOldIdx'), idxMets(k)));
@@ -183,7 +184,7 @@ for i=1:length(idxCoopkRxn)
                 newIdx = [];
             end
             if isempty(newIdx)
-                if tmpMet{k}(end-1) == CharExtComp %nuovo metabolita in [CharExtComp]
+                if tmpMet{k}(end-1) == CharExtComp %new metabolite in [CharExtComp]
                     tmpTable = table({tmpMet{k}}, idxMets(k), 'VariableNames', {'NewMetName', 'MetsOldIdx'});
                     tmpTable = [tmpTable MetsFeatures(idxMets(k),:)];
                     MatrNewMets = [MatrNewMets; tmpTable];
@@ -192,20 +193,20 @@ for i=1:length(idxCoopkRxn)
                     end
                 else
                     compChar = tmpMet{k}(end-1);
-                    for j=0:nPop %crea gli n mets[y]
+                    for j=0:nPop 
                         tmpTable = table({strcat(tmpMet{k}(1:end-3), '_', num2str(j), '[',compChar,']')}, idxMets(k), 'VariableNames', {'NewMetName', 'MetsOldIdx'});
                         tmpTable = [tmpTable MetsFeatures(idxMets(k),:)];
                         MatrNewMets = [MatrNewMets; tmpTable];
                         S = [S; size(MatrNewMets,1) (idxRxnSt + j)  model.S(idxMets(k),idxCoopkRxn(i))];
                     end
                 end
-            else %metabolita già in elenco
-                if tmpMet{k}(end-1) == CharExtComp %nuovo metabolita in [CharExtComp]
+            else %metabolite already created
+                if tmpMet{k}(end-1) == CharExtComp 
                     for j=0:nPop
                         S = [S; newIdx(1) (idxRxnSt + j)  (model.S(idxMets(k),idxCoopkRxn(i)))]; %
                     end
                 else
-                    for j=0:nPop %crea gli n mets[y]
+                    for j=0:nPop
                         S = [S; (newIdx(1)+j) (idxRxnSt + j)  model.S(idxMets(k),idxCoopkRxn(i))];
                     end
                 end
@@ -213,15 +214,14 @@ for i=1:length(idxCoopkRxn)
         end
     end
 end
-%Moltiplicazione Inter reaction: from [?] <=> [?] to [?_n] <=> [?_n]
-%saranno n = numPop e chiamate rxn_n
+%Inter reaction: from [?] <=> [?] to [?_n] <=> [?_n]
 idxRxn = 1:NumRxns;
 idxRxn = setdiff(idxRxn, idxExRxns);
-idxRxn = setdiff(idxRxn, idxCoopkRxn); %rimosse reazioni già trattate
-for i=1:length(idxRxn) % [?]<=>[?] to [?_n]<=>[?_n]
+idxRxn = setdiff(idxRxn, idxCoopkRxn); 
+for i=1:length(idxRxn) 
     idxRxnSt = size(MatrNewRxns,1)+1;
-    for j=0:nPop %crea le n rxn
-        tmpTable = table({strcat(model.rxns{idxRxn(i)}, '_', num2str(j))}, idxRxn(i), 'VariableNames', {'NewRxnName', 'RxnsOldIdx'}); %crea le n rxn
+    for j=0:nPop 
+        tmpTable = table({strcat(model.rxns{idxRxn(i)}, '_', num2str(j))}, idxRxn(i), 'VariableNames', {'NewRxnName', 'RxnsOldIdx'}); 
         tmpTable = [tmpTable RxnsFeatures(idxRxn(i),:)];
         MatrNewRxns = [MatrNewRxns; tmpTable];
     end

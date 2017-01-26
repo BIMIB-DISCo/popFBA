@@ -1,8 +1,16 @@
-function [modelOut, TableRes] = EditBoundaries(model,rxn, lb, ub, NotSure)
-% With first and second argument only show the boundaries
-%
-% NotSure = false change the boundaries without user confirmation, for
-% use the function inside a script
+function [modelOut, TableRes] = EditBoundaries(model,rxn, newLb, newUb, NotSure)
+%User friendly function to manage the boundaries of a FBA model or a
+%population model
+
+%Find all the reactions whose name contain the substring rxn in model.rxns
+ 
+%With first and second arguments only show the reaction boundaries
+
+%With also third and fourth arguments the function show the reaction
+%boundaries and ask user confirmation before change them.
+
+%With the fifth argument (NotSure) = false change the boundaries without ask 
+%user confirmation, for use the function inside a script
 %(Default true)
 
 
@@ -33,16 +41,16 @@ elseif(NotSure)
     choice = questdlg('Would you like to edit these boundaries?', 'Edit Boundaries', 'Yes','No','No');   
     switch choice
         case 'Yes'
-            model.lb(idx) = lb;
-            model.ub(idx) = ub;
+            model.lb(idx) = newLb;
+            model.ub(idx) = newUb;
             modelOut = model;
         case 'No'
             modelOut = model;
     end
 else
     TableRes = table(idx, model.rxns(idx), model.lb(idx),  model.ub(idx), 'VariableNames', {'ID' 'Reaction', 'LowerBound', 'UpperBound'});
-    model.lb(idx) = lb;
-    model.ub(idx) = ub;
+    model.lb(idx) = newLb;
+    model.ub(idx) = newUb;
     modelOut = model;
 end
 end

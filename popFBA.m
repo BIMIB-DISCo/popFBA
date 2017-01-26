@@ -1,4 +1,4 @@
-function [popModel, singleModel, optFlux] = popFBA(nameSBML, nameExRxns, nameCoopRxn, CharExtComp, nPop, otherFeat, rxnsFeat, metsFeat)
+function [popModel, singleModel, optFlux] = popFBA(nameSBML, nameExRxns, nameCoopRxn, nPop, CharExtComp, otherFeat, rxnsFeat, metsFeat)
 
 %nameExRxns and nameUpRxn are cell arrays with name of reactions will be
 %considered as exchange reaction and uptake reactiond respectively.
@@ -18,7 +18,10 @@ function [popModel, singleModel, optFlux] = popFBA(nameSBML, nameExRxns, nameCoo
 % if not specified the function will try to deduce from the size of model.rxns and
 % model.mets. If these two value are the same all arguments must be specified
 
-
+if nargin < 4
+    disp('Not enough input arguments');
+    return
+end
 singleModel = readCbModel(nameSBML); %load from sbml file the single model
 
 idxExRxns = [];
@@ -42,12 +45,13 @@ for i=1:length(nameCoopRxn)
 end
 if nargin < 5
     CharExtComp = 's';
+    popModel = createPopModel(singleModel, idxExRxns, idxUptkRxn, nPop, CharExtComp);
 elseif nargin < 6
-    popModel = createPopModel(singleModel, idxExRxns, idxUptkRxn, CharExtComp, nPop);
+    popModel = createPopModel(singleModel, idxExRxns, idxUptkRxn, nPop, CharExtComp);
 elseif nargin < 7
-    popModel = createPopModel(singleModel, idxExRxns, idxUptkRxn, CharExtComp, nPop, otherFeat);
+    popModel = createPopModel(singleModel, idxExRxns, idxUptkRxn, nPop, CharExtComp, otherFeat);
 else
-    popModel = createPopModel(singleModel, idxExRxns, idxUptkRxn, CharExtComp, nPop, otherFeat, rxnsFeat, metsFeat);
+    popModel = createPopModel(singleModel, idxExRxns, idxUptkRxn, nPop, CharExtComp, otherFeat, rxnsFeat, metsFeat);
 end
 
 optFlux = optimizeCbModel(popModel);
