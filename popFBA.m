@@ -1,20 +1,22 @@
 function [popModel, singleModel, optFlux] = popFBA(nameSBML, nameExRxns, nameCoopRxn, CharExtComp, nPop, otherFeat, rxnsFeat, metsFeat)
 
-%nameExRxns and nameUpRxn are cell array with name of reaction will be
-%consider exchange reaction and uptake reaction rispectivelly.
+%nameExRxns and nameUpRxn are cell arrays with name of reactions will be
+%considered as exchange reaction and uptake reactiond respectively.
 
-%CharExtComp =  char to define the tumor micro envirorment. default 's'
+%CharExtComp =  char to define the tumor micro envirorment. Default: 's'.
 
-%numPop = number of subpopulation in the popModel
+%numPop = number of subpopulations in the popModel
 
-% for specify the struct field to be incorporated in the new model pass the
-% following arguments
+%OPTIONAL:
+% In order to specify specific names fot the model structure fields to be incorporated in the new model the
+% following arguments can be used:
 
-% otherFeat = name of field with no link to rxns or mets e.g. list of genes
-% rxnsFeat = name of field with rxns feature
-% metsFeat = name of field with mets feature
-% if not pass the function will try to determine from the size of rxns and
-% mets. if this two value are the same must pass all the argument (or add a fake metabolite)
+% otherFeat = name of any field with no correspondence with rxns or mets e.g. list of genes
+% rxnsFeat = name of any field associated with model.rxns
+% metsFeat = name of any field associated with model.mets
+
+% if not specified the function will try to deduce from the size of model.rxns and
+% model.mets. If these two value are the same all arguments must be specified
 
 
 singleModel = readCbModel(nameSBML); %load from sbml file the single model
