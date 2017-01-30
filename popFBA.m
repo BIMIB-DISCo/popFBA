@@ -1,20 +1,22 @@
 function [popModel, singleModel, optFlux] = popFBA(nameSBML, nameExRxns, nameCoopRxn, nPop, CharExtComp, otherFeat, rxnsFeat, metsFeat)
-
-%nameExRxns and nameUpRxn are cell arrays with name of reactions will be
-%considered as exchange reaction and uptake reactiond respectively.
-
+%[popModel, singleModel, optFlux] = popFBA(nameSBML, nameExRxns, nameCoopRxn, nPop, CharExtComp, otherFeat, rxnsFeat, metsFeat)
+%
+%
+%nameExRxns and nameCoopRxn are cell arrays with names of reactions that will be
+%considered as exchange reactions and uptake reactions respectively.
+%
 %CharExtComp =  char to define the tumor micro envirorment. Default: 's'.
-
+%
 %numPop = number of subpopulations in the popModel
-
+%
 %OPTIONAL:
 % In order to specify specific names fot the model structure fields to be incorporated in the new model the
 % following arguments can be used:
-
+%
 % otherFeat = name of any field with no correspondence with rxns or mets e.g. list of genes
 % rxnsFeat = name of any field associated with model.rxns
 % metsFeat = name of any field associated with model.mets
-
+%
 % if not specified the function will try to deduce from the size of model.rxns and
 % model.mets. If these two value are the same all arguments must be specified
 
