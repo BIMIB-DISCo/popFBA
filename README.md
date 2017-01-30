@@ -2,7 +2,7 @@
  <li> ‘coreHMR.xml’ is the SBML for the metabolic model used in Damiani et al. </li>
  <li> ‘popFBA.m’ is the MATLAB function to perform Linear Optimisation on a population model composed of Npops clones of a given SBML model as described in Damiani et al. </li>
  <li> ‘createPopModel.m’ is the function called by popFBA that returns a population model structure from a metabolic model structure</li>
-<\ul>
+</ul>
 
 <strong>coreHMR.xml</strong><br />
 ————————————————————————————————————————————————<br />
@@ -15,7 +15,7 @@ product[compartment]<br />
 <br />
 <br />
 <strong>popFBA</strong><br />
-<\p>
+</p>
 ————————————————————————————————————————————————<br />
 [popModel, singleModel, optFlux] = popFBA(nameSBML, nameExRxns, nameCoopRxn, 
 nPop, CharExtComp, otherFeat, rxnsFeat, metsFeat)<br />
