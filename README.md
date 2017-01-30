@@ -88,7 +88,7 @@ from metabolite_in[c] <=> '' to metabolite_in_0[c] <=> metabolite_out[s];metabol
 
 	
 	
-OPTIAML ARGUMENTS
+OPTIONAL ARGUMENTS
 otherFeat = {'genes','modelVersion'};
 
 rxnsFeat = {'rev','c','lb','ub','rules','grRules','rxnNames'};
