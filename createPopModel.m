@@ -103,7 +103,7 @@ MatrNewRxns = table(); %table (nPop*Rxns) x 2 + p with new metabolite e old Inde
 for i=1:length(idxExRxns)
     
     idxMets = find(model.S(:,idxExRxns(i))~=0); 
-    if(idxMets>1)
+    if(length(idxMets)>1)
     warning = [{'Warning the exchange reaction '} model.rxns{i} {'are in a wrong form, please check'}];
     disp(strjoin(warning));
     end
